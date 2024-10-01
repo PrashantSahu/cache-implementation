@@ -1,5 +1,7 @@
 package org.prashant.cache;
 
+import org.prashant.cache.exceptions.NotFoundException;
+import org.prashant.cache.exceptions.StorageFullException;
 import org.prashant.cache.policies.EvictionPolicy;
 import org.prashant.cache.storage.Storage;
 
@@ -15,14 +17,24 @@ public class Cache<Key,Value> {
     }
 
     public void put(Key key, Value value) {
-        this.storage.addKey(key, value);
+        try {
+            this.storage.addKey(key, value);
+        } catch (StorageFullException e) {
+            Key removeKey = evictionPolicy.evictKey();
+            storage.removeKey(removeKey);
+        }
         this.evictionPolicy.keyAccessed(key);
     }
 
     public Value get(Key key) {
-        Value value = this.storage.getValue(key);
-        if (value != null) {
+        Value value = null;
+        try {
+         value = this.storage.getValue(key);
+
             this.evictionPolicy.keyAccessed(key);
+        } catch (NotFoundException e) {
+            System.out.println(key + " Key not found");
+            return null;
         }
         return value;
     }
